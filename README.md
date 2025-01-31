@@ -1,5 +1,7 @@
 # DBSentinel
 
+An intelligent intermediary between your application and database, designed to enhance performance, scalability, and security.
+
 ![npm](https://img.shields.io/npm/v/db-sentinel)
 ![license](https://img.shields.io/npm/l/db-sentinel)
 
