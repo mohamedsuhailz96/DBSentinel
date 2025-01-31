@@ -1,6 +1,6 @@
 {
     "name": "db-sentinel",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "main": "dist/index.js",
     "scripts": {
       "build": "tsc",
@@ -16,6 +16,9 @@
       "@types/node": "^18.0.0",
       "@types/pg": "^8.6.6",
       "typescript": "^4.7.4"
-    }
+    },
+    "author": "Mohamed Suhail Z",
+    "license": "MIT",
+    "homepage": "https://github.com/mohamedsuhailz96/DBSentinel#readme"
   }
   

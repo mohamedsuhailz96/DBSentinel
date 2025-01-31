@@ -36,60 +36,7 @@
 
 ## Flow Chart
 
-```mermaid
-graph TD
-    A[Start: Initialize Middleware] --> B[Configure Database Connection]
-    A --> C[Configure Redis Queue]
-    A --> D[Set Concurrency & Queue Limits]
-    A --> E[Set Cleanup Parameters]
-    A --> F[Start Cleanup Timer]
-    
-    B --> G[Ready to Receive Query Jobs]
-    C --> G
-    D --> G
-    E --> G
-    F --> G
-    
-    G --> H[Client Application Submits Query Job]
-    H --> I[Validate Query: Must be SELECT & Safe]
-    I --> |Valid| J[Check Queue Size]
-    I --> |Invalid| K[Reject Job with Error]
-    
-    J --> |Under Max Size| L[Generate Unique Job ID]
-    J --> |Over Max Size| M[Reject Job with Queue Full Error]
-    
-    L --> N[Enqueue Job with Job ID, Query, Params]
-    N --> O[Job Added to Queue]
-    
-    O --> P[Queue Processor Picks Up Job]
-    P --> Q[Execute Limited Query to Fetch Metadata]
-    Q --> R[Map PG Data Types to SQL Types]
-    R --> S[Create Dynamic Results Table Based on Metadata]
-    S --> T[Insert Job Metadata into job_metadata Table]
-    T --> U[Execute Actual Query to Fetch Data]
-    U --> V[Insert Retrieved Data into Dynamic Results Table]
-    
-    V --> W[Emit Job Completion Event with Job ID & Table Name]
-    W --> X[Client Listens for Completion Event]
-    X --> Y[Client Queries the Dynamic Results Table for Data]
-    
-    P --> Z{Error Occurs?}
-    Z --> |Yes| AA[Emit Job Failed Event with Error Details]
-    Z --> |No| AB[Job Successfully Processed]
-    
-    AA --> AC[Client Listens for Failure Event]
-    AC --> AD[Handle Job Failure in Client Application]
-    
-    AB --> W
-    
-    F --> AE[Periodic Cleanup: Drop Tables Older Than TTL]
-    AE --> AF[Delete Records from job_metadata]
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style G fill:#bbf,stroke:#333,stroke-width:2px
-    style W fill:#bfb,stroke:#333,stroke-width:2px
-    style Z fill:#f96,stroke:#333,stroke-width:2px
-```
+[![](https://mermaid.ink/img/pako:eNqNVV1T4kgU_Stdmap9QktBQfOwW5GA4oIgCTpjsLaa5CI9hk6m00EZ9b_v7e4EE8etHR660s059-Pc27dfrDCJwLKtB0HTFfHdOSf4cwJPUiFtMuBMMhqzn0BGLIpieKIC7sne3p_kLOgmfMkecgHEpZIuaAYEjziEkiX8vrCksd0KdgoRy8h1DjnUMG7ggVQGwlwI4OGW_GFQZMjWTGY1cM-AY6A8T8mECroGCaIO6pssdjCfrUEUCLOeadx5MAUabYlMMLgQ2AaUY7Ell8mitNg1SLNxq5teddOvbsx6ro8ugm7MgEvipGnMQqokIl6-UJm9eyucXWjKILhB5SMqi3BsMsozSRZAvN6w1_VRH48uSxEHmvOqKa_kMuiuIHwsBPSwfnXYgG8M8G_M_TtWTHknT0yuSE-IpK7SpeHMeASCjOiztvdKhsE5cBAqvhlnP9CPsjFw72us8aZGGv3iz4TYz-P4E9dDbeQq6PEfGrZjGVcNo0zDdEBZqytNGgcK40QRRKqy1YYz61jDJoEJYCKSELIsEWTCwseMzNJKQSYaeh30niHMZdGRaNcUDq33QYYrMgJJsV60YF1r1jQYUWzRc31JiL9NIVMM73poNgV4qsFe0BWgFHW3nK5ZiA2Z5TG2iE8XMZAzvGMRwc754MnTZD8Y8AyE0bZEEMbR2_dk8c-6PNG2CqavmbNdZk4ocxp_TMx9dzXThJvS1RSkYLDBqNyds09jr0l_o43cBj2UUUfbTdZpDPpS9DbqmlSKjH1usr_CS16YudUGvpaXasgyCTwjSyzfR1MF46tmfCsZKkGmKrH6L62VrUre1Ua4e9GdSsYhzqrsrzfz351p-G-QvRLHec-tT1mM-lTyMmwX68Hisv4F-ypB8pluXS8PVUcu8WZsy_aEqBaOYwad0_1MCOVXDdyqCo6ZY44bXFCO43wXoAIyTn4dUnV_ZmDeVs_MyHN6wQQVTSLUsZi3NnFFkho1MzKO1fTwV5QT3x-W4Zjh6fQDF7Bm6nEIExFh_CJZ15q2FkYmtxi6Q5Ysju0vy9NlI5MieQT7S6vVKr73nlgkV3Yzfa5yzgvOYvH7nNuSs1z8NuduF1v7fzhWw8JXaU1ZhK_wi7Ixt7Ap1zC3bPyMqHicW3P-hjiay8Tb8tCypcihYYkkf1hZ9pLGGe7yVD0VLqP4lK9LSEr5XZJUt5b9Yj1bdvt4_7DTPuw0j48ODpodDNPaWvbe6Ulrv33SOWi3myedZvP06K1h_dQGmvtHncOjVucA02getztv_wJSo5Qg?type=png)](https://mermaid.live/edit#pako:eNqNVV1T4kgU_Stdmap9QktBQfOwW5GA4oIgCTpjsLaa5CI9hk6m00EZ9b_v7e4EE8etHR660s059-Pc27dfrDCJwLKtB0HTFfHdOSf4cwJPUiFtMuBMMhqzn0BGLIpieKIC7sne3p_kLOgmfMkecgHEpZIuaAYEjziEkiX8vrCksd0KdgoRy8h1DjnUMG7ggVQGwlwI4OGW_GFQZMjWTGY1cM-AY6A8T8mECroGCaIO6pssdjCfrUEUCLOeadx5MAUabYlMMLgQ2AaUY7Ell8mitNg1SLNxq5teddOvbsx6ro8ugm7MgEvipGnMQqokIl6-UJm9eyucXWjKILhB5SMqi3BsMsozSRZAvN6w1_VRH48uSxEHmvOqKa_kMuiuIHwsBPSwfnXYgG8M8G_M_TtWTHknT0yuSE-IpK7SpeHMeASCjOiztvdKhsE5cBAqvhlnP9CPsjFw72us8aZGGv3iz4TYz-P4E9dDbeQq6PEfGrZjGVcNo0zDdEBZqytNGgcK40QRRKqy1YYz61jDJoEJYCKSELIsEWTCwseMzNJKQSYaeh30niHMZdGRaNcUDq33QYYrMgJJsV60YF1r1jQYUWzRc31JiL9NIVMM73poNgV4qsFe0BWgFHW3nK5ZiA2Z5TG2iE8XMZAzvGMRwc754MnTZD8Y8AyE0bZEEMbR2_dk8c-6PNG2CqavmbNdZk4ocxp_TMx9dzXThJvS1RSkYLDBqNyds09jr0l_o43cBj2UUUfbTdZpDPpS9DbqmlSKjH1usr_CS16YudUGvpaXasgyCTwjSyzfR1MF46tmfCsZKkGmKrH6L62VrUre1Ua4e9GdSsYhzqrsrzfz351p-G-QvRLHec-tT1mM-lTyMmwX68Hisv4F-ypB8pluXS8PVUcu8WZsy_aEqBaOYwad0_1MCOVXDdyqCo6ZY44bXFCO43wXoAIyTn4dUnV_ZmDeVs_MyHN6wQQVTSLUsZi3NnFFkho1MzKO1fTwV5QT3x-W4Zjh6fQDF7Bm6nEIExFh_CJZ15q2FkYmtxi6Q5Ysju0vy9NlI5MieQT7S6vVKr73nlgkV3Yzfa5yzgvOYvH7nNuSs1z8NuduF1v7fzhWw8JXaU1ZhK_wi7Ixt7Ap1zC3bPyMqHicW3P-hjiay8Tb8tCypcihYYkkf1hZ9pLGGe7yVD0VLqP4lK9LSEr5XZJUt5b9Yj1bdvt4_7DTPuw0j48ODpodDNPaWvbe6Ulrv33SOWi3myedZvP06K1h_dQGmvtHncOjVucA02getztv_wJSo5Qg)
 
 ## Installation
 
