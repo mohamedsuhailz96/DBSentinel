@@ -34,6 +34,63 @@
 5. **Result Retrieval**: The client listens for completion events and queries the dynamically created results table to access the data.
 6. **Automatic Cleanup**: The middleware periodically cleans up old result tables based on the configured TTL, ensuring the database remains optimized.
 
+## Flow Chart
+
+```mermaid
+graph TD
+    A[Start: Initialize Middleware] --> B[Configure Database Connection]
+    A --> C[Configure Redis Queue]
+    A --> D[Set Concurrency & Queue Limits]
+    A --> E[Set Cleanup Parameters]
+    A --> F[Start Cleanup Timer]
+    
+    B --> G[Ready to Receive Query Jobs]
+    C --> G
+    D --> G
+    E --> G
+    F --> G
+    
+    G --> H[Client Application Submits Query Job]
+    H --> I[Validate Query: Must be SELECT & Safe]
+    I --> |Valid| J[Check Queue Size]
+    I --> |Invalid| K[Reject Job with Error]
+    
+    J --> |Under Max Size| L[Generate Unique Job ID]
+    J --> |Over Max Size| M[Reject Job with Queue Full Error]
+    
+    L --> N[Enqueue Job with Job ID, Query, Params]
+    N --> O[Job Added to Queue]
+    
+    O --> P[Queue Processor Picks Up Job]
+    P --> Q[Execute Limited Query to Fetch Metadata]
+    Q --> R[Map PG Data Types to SQL Types]
+    R --> S[Create Dynamic Results Table Based on Metadata]
+    S --> T[Insert Job Metadata into job_metadata Table]
+    T --> U[Execute Actual Query to Fetch Data]
+    U --> V[Insert Retrieved Data into Dynamic Results Table]
+    
+    V --> W[Emit Job Completion Event with Job ID & Table Name]
+    W --> X[Client Listens for Completion Event]
+    X --> Y[Client Queries the Dynamic Results Table for Data]
+    
+    P --> Z{Error Occurs?}
+    Z --> |Yes| AA[Emit Job Failed Event with Error Details]
+    Z --> |No| AB[Job Successfully Processed]
+    
+    AA --> AC[Client Listens for Failure Event]
+    AC --> AD[Handle Job Failure in Client Application]
+    
+    AB --> W
+    
+    F --> AE[Periodic Cleanup: Drop Tables Older Than TTL]
+    AE --> AF[Delete Records from job_metadata]
+    
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style G fill:#bbf,stroke:#333,stroke-width:2px
+    style W fill:#bfb,stroke:#333,stroke-width:2px
+    style Z fill:#f96,stroke:#333,stroke-width:2px
+```
+
 ## Installation
 
 ```bash
@@ -128,63 +185,6 @@ async function fetchResultsFromTable(tableName: string) {
 Ensure the middleware is properly shut down when your application exits to close all connections and clean up resources.
 ```TypeScript
 await dbSentinel.shutdown();
-```
-
-## Flow Chart
-
-```mermaid
-graph TD
-    A[Start: Initialize Middleware] --> B[Configure Database Connection]
-    A --> C[Configure Redis Queue]
-    A --> D[Set Concurrency & Queue Limits]
-    A --> E[Set Cleanup Parameters]
-    A --> F[Start Cleanup Timer]
-    
-    B --> G[Ready to Receive Query Jobs]
-    C --> G
-    D --> G
-    E --> G
-    F --> G
-    
-    G --> H[Client Application Submits Query Job]
-    H --> I[Validate Query: Must be SELECT & Safe]
-    I --> |Valid| J[Check Queue Size]
-    I --> |Invalid| K[Reject Job with Error]
-    
-    J --> |Under Max Size| L[Generate Unique Job ID]
-    J --> |Over Max Size| M[Reject Job with Queue Full Error]
-    
-    L --> N[Enqueue Job with Job ID, Query, Params]
-    N --> O[Job Added to Queue]
-    
-    O --> P[Queue Processor Picks Up Job]
-    P --> Q[Execute Limited Query to Fetch Metadata]
-    Q --> R[Map PG Data Types to SQL Types]
-    R --> S[Create Dynamic Results Table Based on Metadata]
-    S --> T[Insert Job Metadata into job_metadata Table]
-    T --> U[Execute Actual Query to Fetch Data]
-    U --> V[Insert Retrieved Data into Dynamic Results Table]
-    
-    V --> W[Emit Job Completion Event with Job ID & Table Name]
-    W --> X[Client Listens for Completion Event]
-    X --> Y[Client Queries the Dynamic Results Table for Data]
-    
-    P --> Z{Error Occurs?}
-    Z --> |Yes| AA[Emit Job Failed Event with Error Details]
-    Z --> |No| AB[Job Successfully Processed]
-    
-    AA --> AC[Client Listens for Failure Event]
-    AC --> AD[Handle Job Failure in Client Application]
-    
-    AB --> W
-    
-    F --> AE[Periodic Cleanup: Drop Tables Older Than TTL]
-    AE --> AF[Delete Records from job_metadata]
-    
-    style A fill:#f9f,stroke:#333,stroke-width:2px
-    style G fill:#bbf,stroke:#333,stroke-width:2px
-    style W fill:#bfb,stroke:#333,stroke-width:2px
-    style Z fill:#f96,stroke:#333,stroke-width:2px
 ```
 
 ## Example
