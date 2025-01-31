@@ -6,7 +6,7 @@ async function main() {
       user: 'postgres',
       host: 'localhost',
       database: 'testdb',
-      password: 'zy@1996',
+      password: 'password',
       port: 5432,
     },
     queue: {
